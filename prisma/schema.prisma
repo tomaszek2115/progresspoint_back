@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String    @unique
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+  workouts     Workout[]
+
+  @@map("users")
+}
+
+model Workout {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String            @map("user_id") @db.Uuid
+  startedAt        DateTime          @map("started_at") @db.Timestamptz(6)
+  durationMinutes  Int               @map("duration_minutes")
+  note             String?
+  createdAt        DateTime?         @default(now()) @map("created_at") @db.Timestamptz(6)
+  workoutExercises WorkoutExercise[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("workouts")
+}
+
+model Exercise {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  category         String?
+  createdAt        DateTime?         @default(now()) @map("created_at") @db.Timestamptz(6)
+  workoutExercises WorkoutExercise[]
+
+  @@map("exercises")
+}
+
+model WorkoutExercise {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workoutId  String   @map("workout_id") @db.Uuid
+  exerciseId String   @map("exercise_id") @db.Uuid
+  order      Int      @map("order")
+  sets       Set[]
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workout    Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("workout_exercises")
+}
+
+model Set {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workoutExerciseId String          @map("workout_exercise_id") @db.Uuid
+  setNumber         Int             @map("set_number")
+  repetitions       Int
+  weight            Int
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("sets")
+}
