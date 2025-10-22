@@ -1,15 +1,16 @@
-name: CI - Backend
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  build:
+  backend:
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:16
@@ -20,34 +21,36 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U admin -d progresspoint_app"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=5
-
-    env:
-      DATABASE_URL: postgresql://admin:secret@localhost:5432/progresspoint_app
+          --health-cmd "pg_isready -U admin -d progresspoint_app"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: 20
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Prisma client
-        run: npx prisma generate
+      - name: Wait for Postgres
+        run: |
+          until pg_isready -h localhost -p 5432 -U admin; do
+            echo "Waiting for Postgres..."
+            sleep 2
+          done
 
-      - name: Push Prisma schema to DB
-        run: npx prisma db push
-
-      - name: Build TypeScript
-        run: npm run build
+      - name: Run Prisma migrate and seed
+        env:
+          DATABASE_URL: postgresql://admin:secret@localhost:5432/progresspoint_app
+        run: |
+          npx prisma db push
+          npm run prisma:seed
 
       - name: Run tests
         run: npm test
