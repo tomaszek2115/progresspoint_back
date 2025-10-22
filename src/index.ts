@@ -1,26 +1,31 @@
 import express from 'express';
-import { PrismaClient } from '../generated/prisma';
+import prisma from './prisma';
+import userRouter from "./user/user.routes";
+import { authRouter } from './auth/auth.routes';
+import cors from 'cors';
 
-const prisma = new PrismaClient();
+// create instance of express
 const app = express();
 
+// middleware for parsing json bodies
 app.use(express.json());
 
+// use user routes
+app.use("/user", userRouter);
+app.use("/auth", authRouter);
+
+// cors configuration
+app.use(cors({
+  origin: "http://localhost:6969", // frontend url
+  credentials: true
+}));
+
+// health check route
 app.get('/', (req, res) => {
-    res.send('Hello, World!');
+    res.send('Server is running');
 });
 
-app.get("/users", async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
-});
-
-app.post("/users", async (req, res) => {
-  const { email, username, passwordHash } = req.body;
-  const user = await prisma.user.create({
-    data: { email, username, passwordHash },
-  });
-  res.status(201).json(user);
-});
-
+// start the server
 app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+
+export { app };

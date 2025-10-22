@@ -6,8 +6,8 @@ async function main() {
   // ---- USERS ----
   const users = await prisma.user.createMany({
     data: [
-      { email: 'alice@example.com', username: 'alice', passwordHash: 'hash1' },
-      { email: 'bob@example.com', username: 'bob', passwordHash: 'hash2' }
+      { email: 'test@gmail.com', username: 'test', passwordHash: 'test' },
+      { email: 'test1@gmail.com', username: 'test1', passwordHash: 'test1' }
     ],
     skipDuplicates: true,
   });
@@ -23,13 +23,13 @@ async function main() {
   });
 
   // Pobierz ID userów i ćwiczeń
-  const [alice, bob] = await prisma.user.findMany({ where: { username: { in: ['alice', 'bob'] } } });
+  const [test, test1] = await prisma.user.findMany({ where: { username: { in: ['test', 'test1'] } } });
   const allExercises = await prisma.exercise.findMany();
 
   // ---- WORKOUTS ----
-  const workoutAlice = await prisma.workout.create({
+  const workoutTest = await prisma.workout.create({
     data: {
-      userId: alice.id,
+      userId: test.id,
       startedAt: new Date(),
       durationMinutes: 60,
       note: 'First workout',
@@ -42,7 +42,7 @@ async function main() {
 
   const we1 = await prisma.workoutExercise.create({
     data: {
-      workoutId: workoutAlice.id,
+      workoutId: workoutTest.id,
       exerciseId: bench.id,
       order: 1,
     },
@@ -50,7 +50,7 @@ async function main() {
 
   const we2 = await prisma.workoutExercise.create({
     data: {
-      workoutId: workoutAlice.id,
+      workoutId: workoutTest.id,
       exerciseId: squat.id,
       order: 2,
     },

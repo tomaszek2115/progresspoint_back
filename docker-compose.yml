@@ -20,7 +20,7 @@ services:
       DATABASE_URL: "postgresql://admin:secret@db:5432/progresspoint_app"
     depends_on:
       - db
-    command: sh -c "npx prisma generate && npx prisma db push && npm run dev"
+    command: sh -c "npx prisma generate && npx prisma db push && npm run prisma:seed && npm run dev"
 
 volumes:
   progresspoint_data:
