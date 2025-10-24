@@ -25,6 +25,20 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      
+      postgres-test:
+        image: postgres:16
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: progresspoint_app_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d progresspoint_app_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -45,12 +59,22 @@ jobs:
             sleep 2
           done
 
+      - name: Wait for Postgres test
+        run: |
+          until pg_isready -h localhost -p 5433 -U admin; do
+            echo "Waiting for Postgres test DB..."
+            sleep 2
+          done
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
       - name: Run Prisma migrate and seed
         env:
-          DATABASE_URL: postgresql://admin:secret@localhost:5432/progresspoint_app
+          DATABASE_URL: postgresql://admin:secret@localhost:5433/progresspoint_app_test
         run: |
-          npx prisma db push
-          npm run prisma:seed
+          env $(cat .env.test | xargs) npx prisma db push
+          env $(cat .env.test | xargs) npm run prisma:seed
 
       - name: Run tests
         run: npm test

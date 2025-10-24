@@ -11,6 +11,17 @@ services:
     ports:
       - "5432:5432"
 
+  db-test:
+    image: postgres:16
+    container_name: progresspoint_db_test
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: progresspoint_app_test
+    volumes:
+      - progresspoint_data_test:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
   backend:
     build: .
     container_name: progresspoint_back
@@ -24,3 +35,4 @@ services:
 
 volumes:
   progresspoint_data:
+  progresspoint_data_test:
