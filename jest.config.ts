@@ -1,4 +1,3 @@
-import "./src/test/setupEnv";
 import type { Config } from 'jest';
 
 const config: Config = {
