@@ -50,7 +50,6 @@ describe("Auth Controller Integration", () => {
         .send({ email: "login@example.com", password: "password123" });
 
       expect(res.status).toBe(200);
-      expect(res.body.user).toHaveProperty("id");
       expect(res.body.token).toBeDefined();
     });
 

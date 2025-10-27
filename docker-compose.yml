@@ -11,6 +11,8 @@ services:
     ports:
       - "5432:5432"
 
+
+  # to seed the database run: npm run prisma:seed
   db-test:
     image: postgres:16
     container_name: progresspoint_db_test
@@ -22,6 +24,7 @@ services:
       - progresspoint_data_test:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+
   backend:
     build: .
     container_name: progresspoint_back

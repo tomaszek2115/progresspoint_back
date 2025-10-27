@@ -1,4 +1,5 @@
 import { PrismaClient } from '../generated/prisma';
+import { hashPassword} from '../src/utils/hash';
 
 const prisma = new PrismaClient();
 
@@ -6,8 +7,8 @@ async function main() {
   // ---- USERS ----
   const users = await prisma.user.createMany({
     data: [
-      { email: 'test@gmail.com', username: 'test', passwordHash: 'test' },
-      { email: 'test1@gmail.com', username: 'test1', passwordHash: 'test1' }
+      { email: 'test@gmail.com', username: 'test', passwordHash: await hashPassword('test') },
+      { email: 'test1@gmail.com', username: 'test1', passwordHash: await hashPassword('test1') },
     ],
     skipDuplicates: true,
   });
@@ -22,7 +23,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // Pobierz ID userów i ćwiczeń
+  // get users and exercises
   const [test, test1] = await prisma.user.findMany({ where: { username: { in: ['test', 'test1'] } } });
   const allExercises = await prisma.exercise.findMany();
 

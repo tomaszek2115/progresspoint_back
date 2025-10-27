@@ -1,3 +1,5 @@
+# github actions CI conf file
+
 name: CI
 
 on:
@@ -12,19 +14,6 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: admin
-          POSTGRES_PASSWORD: secret
-          POSTGRES_DB: progresspoint_app
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U admin -d progresspoint_app"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
       
       postgres-test:
         image: postgres:16

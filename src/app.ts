@@ -2,6 +2,7 @@ import express from 'express';
 import prisma from './prisma';
 import userRouter from "./user/user.routes";
 import { authRouter } from './auth/auth.routes';
+import { meRouter } from './me/me.routes';
 import cors from 'cors';
 
 // create instance of express
@@ -13,6 +14,7 @@ app.use(express.json());
 // use user routes
 app.use("/user", userRouter);
 app.use("/auth", authRouter);
+app.use("/me", meRouter);
 
 // cors configuration
 app.use(cors({
