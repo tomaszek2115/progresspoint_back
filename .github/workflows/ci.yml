@@ -22,7 +22,7 @@ jobs:
           POSTGRES_PASSWORD: secret
           POSTGRES_DB: progresspoint_app_test
         ports:
-          - 5433:5432
+          - 5433:5432 # port 5433 for device, 5432 inside the container
         options: >-
           --health-cmd "pg_isready -U admin -d progresspoint_app_test"
           --health-interval 10s

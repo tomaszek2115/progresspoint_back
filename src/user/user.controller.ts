@@ -1,30 +1,29 @@
 import { Request, Response } from "express";
 import prisma from "../prisma";
-import { hashPassword } from "../utils/hash";
 
-export const getUsers = async (req: Request, res: Response) => {
+export const changeUsername = async (req: Request, res: Response) => {
   try {
-    const users = await prisma.user.findMany();
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch users" });
-  }
-};
+    const userId = req.user;
+    const { newUsername } = req.body;
 
-export const createUser = async (req: Request, res: Response) => {
-  const { email, username, password } = req.body;
+    if (!userId) {
+       return res.status(401).json({ error: "Unauthorized"})
+    }
 
-  if (!email || !username || !password) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
+    const existing = await prisma.user.findUnique({
+      where: { username: newUsername } 
+    })
 
-  try {
-    const passwordHash = await hashPassword(password);
-    const user = await prisma.user.create({
-      data: { email, username, passwordHash },
-    });
-    res.status(201).json(user);
-  } catch (error) {
-    res.status(400).json({ error: "Could not create account" });
+    if (existing) {
+      return res.status(409).json({ error: "Username already taken"});
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { username: newUsername }
+    })
+    res.status(200).json({ username: updated.username});
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
   }
-};
+}

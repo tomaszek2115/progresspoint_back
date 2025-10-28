@@ -1,10 +1,7 @@
-import { Router } from "express";
-import { getUsers, createUser } from "./user.controller";
+import express from "express";
+import { changeUsername } from "./user.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
 
-const userRouter = Router();
+export const userRouter = express.Router();
 
-// user routes
-userRouter.get("/", getUsers);
-userRouter.post("/", createUser);
-
-export default userRouter;
+userRouter.put("/username", authMiddleware, changeUsername);

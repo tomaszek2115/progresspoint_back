@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from './prisma';
-import userRouter from "./user/user.routes";
+import { userRouter } from "./user/user.routes";
 import { authRouter } from './auth/auth.routes';
 import { meRouter } from './me/me.routes';
 import cors from 'cors';
