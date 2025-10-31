@@ -24,8 +24,6 @@ describe("Middleware integration", () => {
         const res = await request(app)
             .get("/me")
             .set("Authorization", `Bearer ${validToken}`);
-        
-        console.log(res.body);
 
         expect(res.status).toBe(200);
     });

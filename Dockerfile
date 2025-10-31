@@ -1,23 +1,23 @@
-# 1. Używamy lekkiego Node
+# light node
 FROM node:20-alpine
 
-# 2. Ustawiamy katalog roboczy
+# setting working directory
 WORKDIR /app
 
-# 3. Kopiujemy package.json i package-lock.json
+# copy package.json
 COPY package*.json ./
 
-# 4. Instalujemy zależności
+# install dependencies
 RUN npm install
 
-# 5. Kopiujemy resztę kodu
+# copy all files
 COPY . .
 
-# 6. Generujemy klienta Prisma
+# generate prisma client
 RUN npx prisma generate
 
-# 7. Budujemy projekt (jeśli masz TypeScript)
+# build project
 RUN npx tsc
 
-# 8. Komenda startowa (po migracji)
+# start command
 CMD npx prisma migrate deploy && npm run dev

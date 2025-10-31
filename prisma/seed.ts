@@ -34,6 +34,7 @@ async function main() {
       startedAt: new Date(),
       durationMinutes: 60,
       note: 'First workout',
+      isTemplate: false,
     },
   });
 
