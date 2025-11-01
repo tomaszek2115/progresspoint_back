@@ -8,7 +8,7 @@ describe("Exercise routes", () => {
     await resetDatabase();
   });
 
-  it("GET /exercises should return id and name for all exercises", async () => {
+  it("should return id and name for all exercises", async () => {
     const e1 = await prisma.exercise.create({ data: { name: "Bench Press" } });
     const e2 = await prisma.exercise.create({ data: { name: "Squat" } });
 
