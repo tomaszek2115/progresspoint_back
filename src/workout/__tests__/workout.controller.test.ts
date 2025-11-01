@@ -274,4 +274,270 @@ describe("Workout routes", () => {
             expect(res.body.workoutExercises[0].sets[3].weight).toBe(110);
         });
     });
+
+    describe("GET /workout", () => {
+        // Helper function to create a workout
+        const createWorkout = async (startedAt: string, durationMinutes: number) => {
+            return await prisma.workout.create({
+                data: {
+                    userId,
+                    startedAt: new Date(startedAt),
+                    durationMinutes,
+                    workoutExercises: {
+                        create: [
+                            {
+                                exerciseId: exerciseId1,
+                                order: 1,
+                                sets: {
+                                    create: [
+                                        { setNumber: 1, repetitions: 10, weight: 100 }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            });
+        };
+
+        it("should return empty array when user has no workouts", async () => {
+            const res = await request(app)
+                .get("/workout")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.workouts).toEqual([]);
+            expect(res.body.pagination.totalWorkouts).toBe(0);
+            expect(res.body.pagination.totalPages).toBe(0);
+        });
+
+        it("should return paginated workouts with default pagination", async () => {
+            // Create 3 workouts
+            await createWorkout("2025-10-29T10:00:00Z", 30);
+            await createWorkout("2025-10-30T10:00:00Z", 45);
+            await createWorkout("2025-10-31T10:00:00Z", 60);
+
+            const res = await request(app)
+                .get("/workout")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.workouts).toHaveLength(3);
+            expect(res.body.pagination).toEqual({
+                currentPage: 1,
+                totalPages: 1,
+                totalWorkouts: 3,
+                limit: 10,
+                hasNextPage: false,
+                hasPreviousPage: false
+            });
+
+            // Check workouts are ordered by most recent first
+            expect(res.body.workouts[0].durationMinutes).toBe(60); // Oct 31
+            expect(res.body.workouts[1].durationMinutes).toBe(45); // Oct 30
+            expect(res.body.workouts[2].durationMinutes).toBe(30); // Oct 29
+        });
+
+        it("should return workouts with nested exercises and sets", async () => {
+            await createWorkout("2025-10-31T10:00:00Z", 60);
+
+            const res = await request(app)
+                .get("/workout")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.workouts[0]).toHaveProperty("workoutExercises");
+            expect(res.body.workouts[0].workoutExercises).toHaveLength(1);
+            expect(res.body.workouts[0].workoutExercises[0].exercise).toEqual({
+                id: exerciseId1,
+                name: "Bench Press",
+                category: "chest"
+            });
+            expect(res.body.workouts[0].workoutExercises[0].sets).toHaveLength(1);
+            expect(res.body.workouts[0].workoutExercises[0].sets[0]).toMatchObject({
+                setNumber: 1,
+                repetitions: 10,
+                weight: 100
+            });
+        });
+
+        it("should handle custom page size", async () => {
+            // Create 5 workouts
+            for (let i = 1; i <= 5; i++) {
+                await createWorkout(`2025-10-${25 + i}T10:00:00Z`, i * 10);
+            }
+
+            const res = await request(app)
+                .get("/workout?limit=2")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.workouts).toHaveLength(2);
+            expect(res.body.pagination).toEqual({
+                currentPage: 1,
+                totalPages: 3,
+                totalWorkouts: 5,
+                limit: 2,
+                hasNextPage: true,
+                hasPreviousPage: false
+            });
+        });
+
+        it("should handle page navigation", async () => {
+            // Create 5 workouts
+            for (let i = 1; i <= 5; i++) {
+                await createWorkout(`2025-10-${25 + i}T10:00:00Z`, i * 10);
+            }
+
+            // Get page 2 with limit 2
+            const res = await request(app)
+                .get("/workout?page=2&limit=2")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.workouts).toHaveLength(2);
+            expect(res.body.pagination).toEqual({
+                currentPage: 2,
+                totalPages: 3,
+                totalWorkouts: 5,
+                limit: 2,
+                hasNextPage: true,
+                hasPreviousPage: true
+            });
+
+            // Verify it's showing different workouts (40 and 30 minutes)
+            expect(res.body.workouts[0].durationMinutes).toBe(30);
+            expect(res.body.workouts[1].durationMinutes).toBe(20);
+        });
+
+        it("should handle last page correctly", async () => {
+            // Create 5 workouts
+            for (let i = 1; i <= 5; i++) {
+                await createWorkout(`2025-10-${25 + i}T10:00:00Z`, i * 10);
+            }
+
+            // Get page 3 (last page) with limit 2
+            const res = await request(app)
+                .get("/workout?page=3&limit=2")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.workouts).toHaveLength(1); // Only 1 workout on last page
+            expect(res.body.pagination).toEqual({
+                currentPage: 3,
+                totalPages: 3,
+                totalWorkouts: 5,
+                limit: 2,
+                hasNextPage: false,
+                hasPreviousPage: true
+            });
+        });
+
+        it("should return empty array for page beyond total pages", async () => {
+            await createWorkout("2025-10-31T10:00:00Z", 60);
+
+            const res = await request(app)
+                .get("/workout?page=10")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.workouts).toEqual([]);
+            expect(res.body.pagination.currentPage).toBe(10);
+            expect(res.body.pagination.totalPages).toBe(1);
+        });
+
+        it("should fail without authentication", async () => {
+            const res = await request(app).get("/workout");
+
+            expect(res.status).toBe(401);
+        });
+
+        it("should fail with negative page number", async () => {
+            const res = await request(app)
+                .get("/workout?page=-1")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(400);
+            expect(res.body.message).toBe("Page must be at least 1");
+        });
+
+        it("should fail with limit greater than 100", async () => {
+            const res = await request(app)
+                .get("/workout?limit=101")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(400);
+            expect(res.body.message).toBe("Limit must be between 1 and 100");
+        });
+
+        it("should only return workouts for authenticated user", async () => {
+            // Create workout for first user
+            await createWorkout("2025-10-31T10:00:00Z", 60);
+
+            // Create second user
+            const user2Res = await request(app)
+                .post("/auth/register")
+                .send({
+                    email: "user2@test.com",
+                    username: "user2",
+                    password: "password123"
+                });
+
+            const user2Token = user2Res.body.token;
+            const user2Id = user2Res.body.user.id;
+
+            // Create workout for second user
+            await prisma.workout.create({
+                data: {
+                    userId: user2Id,
+                    startedAt: new Date("2025-10-31T10:00:00Z"),
+                    durationMinutes: 90,
+                    workoutExercises: {
+                        create: [
+                            {
+                                exerciseId: exerciseId1,
+                                order: 1,
+                                sets: {
+                                    create: [
+                                        { setNumber: 1, repetitions: 10, weight: 100 }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            });
+
+            // First user should only see their workout
+            const res1 = await request(app)
+                .get("/workout")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res1.status).toBe(200);
+            expect(res1.body.workouts).toHaveLength(1);
+            expect(res1.body.workouts[0].durationMinutes).toBe(60);
+
+            // Second user should only see their workout
+            const res2 = await request(app)
+                .get("/workout")
+                .set("Authorization", `Bearer ${user2Token}`);
+
+            expect(res2.status).toBe(200);
+            expect(res2.body.workouts).toHaveLength(1);
+            expect(res2.body.workouts[0].durationMinutes).toBe(90);
+        });
+
+        it("should handle non-numeric page and limit gracefully", async () => {
+            await createWorkout("2025-10-31T10:00:00Z", 60);
+
+            const res = await request(app)
+                .get("/workout?page=abc&limit=xyz")
+                .set("Authorization", `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            // Should default to page 1, limit 10
+            expect(res.body.pagination.currentPage).toBe(1);
+            expect(res.body.pagination.limit).toBe(10);
+        });
+    });
 })

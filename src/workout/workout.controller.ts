@@ -20,6 +20,11 @@ interface CreateWorkoutBody {
     }[];
 }
 
+interface GetWorkoutsQuery {
+  page?: string;
+  limit?: string;
+}
+
 export const createWorkout = async (req: Request, res: Response) => {
     try {
         // check if theres a user id
@@ -83,3 +88,71 @@ export const createWorkout = async (req: Request, res: Response) => {
         return res.status(500).json({ message: "Internal server error"})
     }
 }
+
+// get /workout?page=1&limit=10
+export const getWorkout = async (req: Request, res: Response) => {
+  try {
+    // check if theres a user id
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userId = req.user;
+
+    // Parse pagination params with defaults
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    // Validate pagination params
+    if (isNaN(page) || page < 1) {
+      return res.status(400).json({ message: "Page must be at least 1" });
+    }
+
+    if (isNaN(limit) || limit < 1 || limit > 100) {
+      return res.status(400).json({ message: "Limit must be between 1 and 100" });
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination metadata
+    const totalWorkouts = await prisma.workout.count({
+      where: { userId }
+    });
+
+    // Get paginated workouts
+    const workouts = await prisma.workout.findMany({
+      where: { userId },
+      include: {
+        workoutExercises: {
+          include: {
+            exercise: { select: { id: true, name: true, category: true } },
+            sets: {
+              orderBy: { setNumber: "asc" }
+            }
+          },
+          orderBy: { order: "asc" }
+        }
+      },
+      orderBy: { startedAt: "desc" }, // Most recent first
+      skip,
+      take: limit
+    });
+
+    const totalPages = Math.ceil(totalWorkouts / limit);
+
+    return res.status(200).json({
+      workouts,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalWorkouts,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      }
+    });
+  } catch (err) {
+    console.error("Failed to fetch workouts", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
