@@ -2,11 +2,9 @@ import { Request, Response } from "express"
 import prisma from "../prisma"
 
 // define the shape of the request body
-// IMPORTANT
-// frontend should send date data with Z on the end "2025-10-31T19:45:00.000Z"
+// startedAt is now handled by backend (uses current timestamp)
 
 interface CreateWorkoutBody {
-    startedAt: string;
     durationMinutes: number;
     note?: string;
     exercises: {
@@ -34,9 +32,9 @@ export const createWorkout = async (req: Request, res: Response) => {
         // get user id
         const userId = req.user;
         // get data from request body
-        const { startedAt, durationMinutes, note, exercises}: CreateWorkoutBody = req.body;
+        const { durationMinutes, note, exercises}: CreateWorkoutBody = req.body;
         // validation
-        if (!startedAt || !durationMinutes || !exercises || exercises.length === 0) {
+        if (!durationMinutes || !exercises || exercises.length === 0) {
             return res.status(400).json({ message: "Missing required fields"});
         }
         // check if duration is not negative
@@ -56,7 +54,7 @@ export const createWorkout = async (req: Request, res: Response) => {
         const workout = await prisma.workout.create({
             data:{
                 userId,
-                startedAt: new Date(startedAt),
+                startedAt: new Date(), // Backend sets current timestamp
                 durationMinutes,
                 note: note,
                 workoutExercises: {
@@ -99,9 +97,11 @@ export const getWorkout = async (req: Request, res: Response) => {
 
     const userId = req.user;
 
-    // Parse pagination params with defaults
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+  // Parse pagination params with defaults (avoid || which swallows 0)
+  const parsedPage = parseInt(req.query.page as string);
+  const parsedLimit = parseInt(req.query.limit as string);
+  const page = isNaN(parsedPage) ? 1 : parsedPage;
+  const limit = isNaN(parsedLimit) ? 10 : parsedLimit;
 
     // Validate pagination params
     if (isNaN(page) || page < 1) {
@@ -123,6 +123,7 @@ export const getWorkout = async (req: Request, res: Response) => {
     const workouts = await prisma.workout.findMany({
       where: { userId },
       include: {
+        user: { select: { id: true, username: true } },
         workoutExercises: {
           include: {
             exercise: { select: { id: true, name: true, category: true } },

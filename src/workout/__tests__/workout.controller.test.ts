@@ -39,7 +39,6 @@ describe("Workout routes", () => {
     describe("POST /workout", () => {
         it("should create a workout with exercises and sets", async () => {
             const workoutData = {
-                startedAt: "2025-10-31T18:00:00Z",
                 durationMinutes: 60,
                 note: "Great workout today!",
                 exercises: [
@@ -84,7 +83,6 @@ describe("Workout routes", () => {
 
         it("should create a workout without a note", async () => {
             const workoutData = {
-                startedAt: "2025-10-31T18:00:00Z",
                 durationMinutes: 45,
                 exercises: [
                     {
@@ -108,7 +106,6 @@ describe("Workout routes", () => {
 
         it("should fail without authentication", async () => {
             const workoutData = {
-                startedAt: "2025-10-31T18:00:00Z",
                 durationMinutes: 60,
                 exercises: [
                     {
@@ -128,32 +125,8 @@ describe("Workout routes", () => {
             expect(res.status).toBe(401);
         });
 
-        it("should fail with missing required fields (no startedAt)", async () => {
-            const workoutData = {
-                durationMinutes: 60,
-                exercises: [
-                    {
-                        exerciseId: exerciseId1,
-                        order: 1,
-                        sets: [
-                            { setNumber: 1, repetitions: 10, weight: 100 }
-                        ]
-                    }
-                ]
-            };
-
-            const res = await request(app)
-                .post("/workout")
-                .set("Authorization", `Bearer ${authToken}`)
-                .send(workoutData);
-
-            expect(res.status).toBe(400);
-            expect(res.body.message).toBe("Missing required fields");
-        });
-
         it("should fail with missing required fields (no exercises)", async () => {
             const workoutData = {
-                startedAt: "2025-10-31T18:00:00Z",
                 durationMinutes: 60,
                 exercises: []
             };
@@ -169,7 +142,6 @@ describe("Workout routes", () => {
 
         it("should fail with negative duration", async () => {
             const workoutData = {
-                startedAt: "2025-10-31T18:00:00Z",
                 durationMinutes: -10,
                 exercises: [
                     {
@@ -193,7 +165,6 @@ describe("Workout routes", () => {
 
         it("should fail with non-existent exercise", async () => {
             const workoutData = {
-                startedAt: "2025-10-31T18:00:00Z",
                 durationMinutes: 60,
                 exercises: [
                     {
@@ -217,7 +188,6 @@ describe("Workout routes", () => {
 
         it("should fail when one of multiple exercises doesn't exist", async () => {
             const workoutData = {
-                startedAt: "2025-10-31T18:00:00Z",
                 durationMinutes: 60,
                 exercises: [
                     {
@@ -248,7 +218,6 @@ describe("Workout routes", () => {
 
         it("should create workout with multiple sets per exercise", async () => {
             const workoutData = {
-                startedAt: "2025-10-31T18:00:00Z",
                 durationMinutes: 90,
                 exercises: [
                     {
