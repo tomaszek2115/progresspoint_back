@@ -5,6 +5,8 @@ describe("uploadService module", () => {
   });
 
   it("exports upload with a single() function (mocking S3 client)", async () => {
+    // provide required env var used by multer-s3 during module initialization
+    process.env.AWS_S3_BUCKET = "test-bucket";
     // mock S3Client so importing the module doesn't require @aws-sdk/client-s3 to be installed
     jest.doMock("@aws-sdk/client-s3", () => ({ S3Client: class {} }));
 
