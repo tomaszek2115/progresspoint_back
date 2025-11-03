@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { hashPassword, comparePassword } from "../utils/hash";
+import { upload } from "../utils/uploadService";
 import prisma from "../prisma";
 
 // username change
@@ -75,5 +76,32 @@ export const changePassword = async (req: Request, res: Response) => {
 
   } catch (err) {
     res.status(500).json({ error: "Internal server error"});
+  }
+}
+
+// upload profile picture
+export const uploadProfilePicture = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    // multer-s3 attaches the uploaded file info to req.file and includes a `location` property
+    const file = req.file as Express.Multer.File & { location?: string } | undefined;
+    if (!file || !file.location) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const imageUrl = file.location;
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { profileImageUrl: imageUrl },
+      select: { id: true, profileImageUrl: true },
+    });
+
+    return res.status(200).json({ profileImageUrl: updated.profileImageUrl });
+  } catch (err) {
+    console.error("Error uploading profile picture:", err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
