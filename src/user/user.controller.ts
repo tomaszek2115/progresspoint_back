@@ -105,3 +105,25 @@ export const uploadProfilePicture = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+// get profile picture url
+export const getProfilePicture = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { profileImageUrl: true },
+    });
+
+    if (!user || !user.profileImageUrl) {
+      return res.status(404).json({ error: "Profile picture not found" });
+    }
+
+    return res.status(200).json({ profileImageUrl: user.profileImageUrl });
+  } catch (err) {
+    console.error("Error fetching profile picture:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
