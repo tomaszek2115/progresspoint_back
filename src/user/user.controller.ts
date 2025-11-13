@@ -85,13 +85,27 @@ export const uploadProfilePicture = async (req: Request, res: Response) => {
     const userId = req.user;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    // multer-s3 attaches the uploaded file info to req.file and includes a `location` property
     const file = req.file as Express.Multer.File & { location?: string } | undefined;
-    if (!file || !file.location) {
+    if (!file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const imageUrl = file.location;
+    // multer-s3 provides 'location' (S3 URL), memory storage does not
+    let imageUrl: string;
+    
+    if (file.location) {
+      // S3 storage - use the S3 URL
+      imageUrl = file.location;
+    } else {
+      // Memory storage fallback - file is in req.file.buffer
+      // For production, you should either:
+      // 1. Require S3 to be configured, OR
+      // 2. Store the buffer somewhere (local disk, different cloud storage)
+      // For now, we'll reject uploads without S3
+      return res.status(503).json({ 
+        error: "File upload service not configured. AWS S3 credentials required." 
+      });
+    }
 
     const updated = await prisma.user.update({
       where: { id: userId },
@@ -124,6 +138,24 @@ export const getProfilePicture = async (req: Request, res: Response) => {
     return res.status(200).json({ profileImageUrl: user.profileImageUrl });
   } catch (err) {
     console.error("Error fetching profile picture:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export const deleteProfilePicture = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { profileImageUrl: null },
+      select: { id: true },
+    });
+
+    return res.status(200).json({ message: "Profile picture deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting profile picture:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
