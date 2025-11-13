@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { hashPassword, comparePassword } from "../utils/hash";
-import { upload } from "../utils/uploadService";
+import { upload, deleteS3File } from "../utils/uploadService";
 import prisma from "../prisma";
 
 // username change
@@ -107,6 +107,18 @@ export const uploadProfilePicture = async (req: Request, res: Response) => {
       });
     }
 
+    // Get user's current profile picture URL to delete old one
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { profileImageUrl: true },
+    });
+
+    // Delete old profile picture from S3 if it exists
+    if (currentUser?.profileImageUrl) {
+      await deleteS3File(currentUser.profileImageUrl);
+    }
+
+    // Update database with new profile picture URL
     const updated = await prisma.user.update({
       where: { id: userId },
       data: { profileImageUrl: imageUrl },
@@ -147,7 +159,19 @@ export const deleteProfilePicture = async (req: Request, res: Response) => {
     const userId = req.user;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    const updated = await prisma.user.update({
+    // Get current profile picture URL before deleting
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { profileImageUrl: true },
+    });
+
+    // Delete file from S3 if it exists
+    if (user?.profileImageUrl) {
+      await deleteS3File(user.profileImageUrl);
+    }
+
+    // Update database to remove profile picture URL
+    await prisma.user.update({
       where: { id: userId },
       data: { profileImageUrl: null },
       select: { id: true },

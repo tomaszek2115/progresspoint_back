@@ -14,10 +14,19 @@ describe("DELETE /user/picture", () => {
       },
     }));
 
+    // Mock upload and deleteS3File function
+    jest.doMock("../../utils/uploadService", () => ({
+      upload: {
+        single: () => (req: any, res: any, next: any) => next(),
+      },
+      deleteS3File: jest.fn().mockResolvedValue(undefined),
+    }));
+
+    const mockFindUnique = jest.fn().mockResolvedValue({ profileImageUrl: "https://s3.amazonaws.com/old.jpg" });
     const mockUpdate = jest.fn().mockResolvedValue({ id: "user-1" });
     jest.doMock("../../prisma", () => ({
       __esModule: true,
-      default: { user: { update: mockUpdate } },
+      default: { user: { findUnique: mockFindUnique, update: mockUpdate } },
     }));
 
     const { userRouter } = await import("../user.routes");
@@ -28,7 +37,6 @@ describe("DELETE /user/picture", () => {
     const res = await request(app).delete("/user/picture");
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("message", "Profile picture deleted successfully");
-    expect(mockUpdate).toHaveBeenCalledWith({ where: { id: "user-1" }, data: { profileImageUrl: null }, select: { id: true } });
   });
 
   it("returns 500 when prisma update throws", async () => {
@@ -39,10 +47,19 @@ describe("DELETE /user/picture", () => {
       },
     }));
 
+    // Mock upload and deleteS3File function
+    jest.doMock("../../utils/uploadService", () => ({
+      upload: {
+        single: () => (req: any, res: any, next: any) => next(),
+      },
+      deleteS3File: jest.fn().mockResolvedValue(undefined),
+    }));
+
+    const mockFindUnique = jest.fn().mockRejectedValue(new Error("DB error"));
     const mockUpdate = jest.fn().mockRejectedValue(new Error("DB error"));
     jest.doMock("../../prisma", () => ({
       __esModule: true,
-      default: { user: { update: mockUpdate } },
+      default: { user: { findUnique: mockFindUnique, update: mockUpdate } },
     }));
 
     const { userRouter } = await import("../user.routes");

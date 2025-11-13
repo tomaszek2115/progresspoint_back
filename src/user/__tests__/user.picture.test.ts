@@ -25,13 +25,15 @@ describe("POST /user/picture", () => {
           next();
         },
       },
+      deleteS3File: jest.fn().mockResolvedValue(undefined),
     }));
 
-    // mock prisma to avoid db calls
+    // mock prisma to avoid db calls - need both findUnique and update
+    const mockFindUnique = jest.fn().mockResolvedValue({ profileImageUrl: null });
     const mockUpdate = jest.fn().mockResolvedValue({ id: "user-1", profileImageUrl: "https://s3.amazonaws.com/bucket/users/user-1/profile-123.jpg" });
     jest.doMock("../../prisma", () => ({
       __esModule: true,
-      default: { user: { update: mockUpdate } },
+      default: { user: { findUnique: mockFindUnique, update: mockUpdate } },
     }));
 
     const { userRouter } = await import("../user.routes");
